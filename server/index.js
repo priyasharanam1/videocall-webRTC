@@ -1,51 +1,29 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+// const express = require("express");
+// const bodyParser = require("body-parser");
 const { Server } = require("socket.io");
 
-const io = new Server({
+const io = new Server(8000,{
   cors: true,
 });
-const app = express();
+// const app = express();
 
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 
 const emailToSocketMapping = new Map();
+const socketidToEmailMapping = new Map();
 
 io.on("connection", (socket) => {
   console.log("New connection established:", socket.id);
-  socket.on("join-room", (data) => {
-  const { roomId, emailId } = data;
-  console.log(`User with email: ${emailId} is joining Room: ${roomId}`);
-  emailToSocketMapping.set(emailId, socket.id);
-  socket.join(roomId);
-  socket.emit("Room Joined", {roomId});
-  socket.broadcast.to(roomId).emit("user-joined", { emailId });
+  socket.on("room:join", (data) => {
+    const { email, room } = data;
+    emailToSocketMapping.set(email, socket.id);
+    socketidToEmailMapping.set(socket.id,email);
+    io.to(room).emit("user:joined", {email, id: socket.id});
+    socket.join(room);
+    io.to(socket.id).emit("room:join", data);
   });
 });
-// io.on("connection", (socket) => {
-  // console.log("New connection established:", socket.id);
-
-  // socket.on("join-room", (data) => {
-    // const { roomId, emailId } = data;
-    // console.log(`User with email: ${emailId} is joining Room: ${roomId}`);
-    
-    // Save the socket ID for the email
-    // emailToSocketMapping.set(emailId, socket.id);
-    
-    // Join the user to the room
-    // socket.join(roomId);
-    
-    // Broadcast to the room that a user has joined
-    // console.log(`Broadcasting to room ${roomId}: User ${emailId} joined.`);
-    // socket.broadcast.to(roomId).emit("user-joined", { emailId });
-  // });
-
-  // Log when a user disconnects
-  // socket.on("disconnect", () => {
-    // console.log(`User with socket ID ${socket.id} disconnected.`);
-  // });
-// });
 
 // Start the HTTP server
-app.listen(8000, () => console.log("HTTP server running at port 8000"));
-io.listen(8001, () => console.log("Socket.io server running at port 8001"));
+// app.listen(8000, () => console.log("HTTP server running at port 8000"));
+// io.listen(8001, () => console.log("Socket.io server running at port 8001"));
